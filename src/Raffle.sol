@@ -119,12 +119,12 @@ contract Raffle is VRFConsumerBaseV2 {
 
         s_players = new address payable[](0);
         s_lastTimeStamp = block.timestamp;
+        emit PickedWinner(winner);
 
         (bool success,) = winner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransferFailed();
         }
-        emit PickedWinner(winner);
     }
 
     function getEntranceFee() external view returns (uint256) {
