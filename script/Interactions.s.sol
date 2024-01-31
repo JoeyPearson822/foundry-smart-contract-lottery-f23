@@ -26,5 +26,17 @@ contract CreateSubscription is Script {
 
     function run() external returns (uint64) {
         return createSubscriptionUsingConfig();
+    } 
+}
+
+contract FundSubscription is Script {
+    uint96 public constant FUND_AMOUNT = 3 ether;
+
+    function fundScubscriptionUsingConfig() public {
+
+    }
+
+    function run() external {
+        fundScubscriptionUsingConfig();
     }
 }
