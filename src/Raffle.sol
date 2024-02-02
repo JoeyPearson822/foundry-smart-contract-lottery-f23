@@ -29,7 +29,7 @@ import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBa
 
 /**
  * @title Sample Raffle
- * @author Joey Pearson
+ * @author Joey Pearson, following along with Patrick Collins YouTube course
  * @notice creates a sample raffle
  * @dev Implements Chainlink VRFv2
  */
@@ -101,35 +101,80 @@ contract Raffle is VRFConsumerBaseV2 {
     /**
      * @dev Function called by Chainlink Automation to check if it's time to perform an upkeep
      */
+
     function checkUpkeep(
         bytes memory /* checkData */
-        ) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
-            (bool upkeepNeeded, ) = checkUpkeep((""));
-            if (!upkeepNeeded) {
-                revert Raffle__UpkeepNotNeeded(
-                    address(this).balance,
-                    s_players.length,
-                    uint256(s_raffleState)
-                );
-            }
-            bool timeHasPassed = (block.timestamp - s_lastTimeStamp) >= i_interval;
-            bool isOpen = RaffleState.OPEN == s_raffleState;
-            bool hasBalance = address(this).balance > 0;
-            bool hasPlayers = s_players.length > 0;
-            upkeepNeeded = (timeHasPassed && isOpen && hasPlayers);
-            return (upkeepNeeded, "0x0");
-        }
+    )
+        public
+        view
+        /** override */
+        returns (bool upkeepNeeded, bytes memory /* performData */)
+    {
+        bool isOpen = RaffleState.OPEN == s_raffleState;
+        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
+        bool hasPlayers = s_players.length > 0;
+        bool hasBalance = address(this).balance > 0;
+        upkeepNeeded = (timePassed && isOpen && hasBalance && hasPlayers);
+        return (upkeepNeeded, "0x0"); // can we comment this out?
+    }
 
-    function performUpkeep(bytes calldata /* performData*/) external {
+    /**
+     * @dev Once `checkUpkeep` is returning `true`, this function is called
+     * and it kicks off a Chainlink VRF call to get a random winner.
+     */
+    function performUpkeep(bytes calldata /* performData */) external /** override */ {
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        // require(upkeepNeeded, "Upkeep not needed");
+        if (!upkeepNeeded) {
+            revert Raffle__UpkeepNotNeeded(
+                address(this).balance,
+                s_players.length,
+                uint256(s_raffleState)
+            );
+        }
         s_raffleState = RaffleState.CALCULATING;
-        i_vrfCoordinator.requestRandomWords(
+        uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
             REQUEST_CONFIRMATIONS,
             i_callbackGasLimit,
             NUM_WORDS
         );
+        // Quiz... is this redundant?
+        // emit RequestedRaffleWinner(requestId);
     }
+
+//////////////////////////  What Have I DONE!!!  ////////////////////////////
+
+    // function checkUpkeep(
+    //     bytes memory /* checkData */
+    //     ) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
+    //         (bool upkeepNeeded, ) = checkUpkeep((""));
+    //         if (!upkeepNeeded) {
+    //             revert Raffle__UpkeepNotNeeded(
+    //                 address(this).balance,
+    //                 s_players.length,
+    //                 uint256(s_raffleState)
+    //             );
+    //         }
+    //         bool timeHasPassed = (block.timestamp - s_lastTimeStamp) >= i_interval;
+    //         bool isOpen = RaffleState.OPEN == s_raffleState;
+    //         bool hasBalance = address(this).balance > 0;
+    //         bool hasPlayers = s_players.length > 0;
+    //         upkeepNeeded = (timeHasPassed && isOpen && hasPlayers);
+    //         return (upkeepNeeded, "0x0");
+    //     }
+
+    // function performUpkeep(bytes calldata /* performData*/) external {
+    //     s_raffleState = RaffleState.CALCULATING;
+    //     i_vrfCoordinator.requestRandomWords(
+    //         i_gasLane,
+    //         i_subscriptionId,
+    //         REQUEST_CONFIRMATIONS,
+    //         i_callbackGasLimit,
+    //         NUM_WORDS
+    //     );
+    // }
 
     function fulfillRandomWords(
         uint256 /* requestId */,
